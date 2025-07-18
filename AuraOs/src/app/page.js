@@ -1,10 +1,13 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Monitor, Zap, Shield, Brain, Globe, ArrowRight, Cpu, Lock, Layers } from 'lucide-react';
-
+// import router from next/navigation
+import { useRouter } from 'next/navigation';
 const AuraOSLanding = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const router= useRouter()
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -128,7 +131,8 @@ const AuraOSLanding = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row items-start space-y-6 sm:space-y-0 sm:space-x-8">
-                <button className="group relative bg-gradient-to-r from-purple-600 to-purple-700 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-xl shadow-purple-500/30 hover:shadow-purple-600/40 transform hover:scale-105">
+                <button className="group relative bg-gradient-to-r from-purple-600 to-purple-700 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-xl shadow-purple-500/30 hover:shadow-purple-600/40 transform hover:scale-105 cursor-pointer"
+                onClick={()=> router.push("/home/desktop")}>
                   <span className="flex items-center space-x-3">
                     <Monitor className="w-6 h-6" />
                     <span>Launch Desktop</span>
