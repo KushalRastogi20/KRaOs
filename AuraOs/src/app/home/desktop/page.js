@@ -31,7 +31,7 @@ import {
   Move,
 } from "lucide-react";
 import FileManager from "@/components/FileManager";
-import Notepad from "@/components/NotePad";
+import Notepad from "@/components/Notepad";
 import TerminalApp from "@/components/TerminalApp";
 
 const FuturisticAuraDesktop = () => {
