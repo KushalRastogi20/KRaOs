@@ -28,9 +28,12 @@ import {
   Terminal,
   FileText,
   Search,
+  Move,
 } from "lucide-react";
 import FileManager from "@/components/FileManager";
 import Notepad from "@/components/NotePad";
+import TerminalApp from "@/components/TerminalApp";
+
 const FuturisticAuraDesktop = () => {
   const [currentTime, setCurrentTime] = useState("");
   const [neuralActivity, setNeuralActivity] = useState(0);
@@ -38,6 +41,8 @@ const FuturisticAuraDesktop = () => {
   const [hologramNodes, setHologramNodes] = useState([]);
   const [activeWindows, setActiveWindows] = useState([]);
   const [minimizedWindows, setMinimizedWindows] = useState([]);
+  const [dragging, setDragging] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // App-specific states
   const [codeEditorContent, setCodeEditorContent] = useState(
@@ -119,11 +124,42 @@ const FuturisticAuraDesktop = () => {
     setHologramNodes(nodes);
   }, []);
 
+  // Mouse events for dragging
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (dragging) {
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+        
+        setActiveWindows(windows =>
+          windows.map(window =>
+            window.id === dragging.id
+              ? { ...window, x: Math.max(0, newX), y: Math.max(80, newY) }
+              : window
+          )
+        );
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDragging(null);
+      setDragOffset({ x: 0, y: 0 });
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging, dragOffset]);
+
   const quantumApps = [
     {
       id: "notepad",
       name: "Neural\nNotepad",
-      icon: Edit3, // or PenTool
+      icon: Edit3,
       color: "from-green-400 to-emerald-500",
       hologramColor: "#10b981",
       description: "Quantum text editor",
@@ -139,13 +175,13 @@ const FuturisticAuraDesktop = () => {
       type: "code",
     },
     {
-      id: "reality-engine",
-      name: "Reality\nEngine",
-      icon: Eye,
-      color: "from-emerald-400 to-green-500",
+      id: "terminal",
+      name: "Quantum\nTerminal",
+      icon: Terminal,
+      color: "from-green-400 to-emerald-500",
       hologramColor: "#10b981",
-      description: "Augmented reality synthesis",
-      type: "reality",
+      description: "Neural command interface",
+      type: "terminal",
     },
     {
       id: "file-manager",
@@ -185,8 +221,8 @@ const FuturisticAuraDesktop = () => {
       app: app,
       x: Math.random() * 300 + 100,
       y: Math.random() * 200 + 100,
-      width: 500,
-      height: 400,
+      width: 800,
+      height: 600,
       isMaximized: false,
     };
 
@@ -215,6 +251,17 @@ const FuturisticAuraDesktop = () => {
   const restoreWindow = (appId) => {
     const app = quantumApps.find((a) => a.id === appId);
     if (app) openApp(app);
+  };
+
+  const handleMouseDown = (e, window) => {
+    if (e.target.closest('.window-controls')) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setDragging(window);
   };
 
   const runQuantumCode = () => {
@@ -247,22 +294,34 @@ const FuturisticAuraDesktop = () => {
     const IconComponent = app.icon;
 
     const windowStyle = window.isMaximized
-      ? { left: 0, top: 80, width: "100vw", height: "calc(100vh - 160px)" }
+      ? { 
+          left: 0, 
+          top: 80, 
+          width: "100vw", 
+          height: "calc(100vh - 160px)",
+          transform: "none"
+        }
       : {
           left: window.x,
           top: window.y,
           width: window.width,
           height: window.height,
+          transform: "none"
         };
 
     return (
       <div
         key={window.id}
-        className="absolute bg-black/60 backdrop-blur-xl border border-purple-500/40 rounded-2xl overflow-hidden z-40"
+        className={`absolute bg-black/60 backdrop-blur-xl border border-purple-500/40 rounded-2xl overflow-hidden z-40 ${
+          dragging?.id === window.id ? 'cursor-grabbing' : ''
+        }`}
         style={windowStyle}
+        onMouseDown={(e) => handleMouseDown(e, window)}
       >
         {/* Window Header */}
-        <div className="bg-black/40 border-b border-purple-500/30 p-3 flex items-center justify-between">
+        <div className={`bg-black/40 border-b border-purple-500/30 p-3 flex items-center justify-between ${
+          !window.isMaximized ? 'cursor-grab' : ''
+        }`}>
           <div className="flex items-center gap-3">
             <div
               className={`w-8 h-8 bg-gradient-to-br ${app.color} rounded-xl flex items-center justify-center`}
@@ -277,7 +336,7 @@ const FuturisticAuraDesktop = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 window-controls">
             <button
               onClick={() => minimizeWindow(window.id)}
               className="w-6 h-6 bg-yellow-500/20 hover:bg-yellow-500/40 rounded-full flex items-center justify-center transition-colors"
@@ -300,45 +359,7 @@ const FuturisticAuraDesktop = () => {
         </div>
 
         {/* Window Content */}
-        <div className="p-4 h-full overflow-auto">
-          {/* {app.type === 'neural' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-black/30 rounded-xl p-3">
-                  <h4 className="text-purple-300 text-sm mb-2">Neural Activity</h4>
-                  <div className="text-2xl text-white font-bold">{neuralActivity}%</div>
-                  <div className="w-full bg-white/10 rounded-full h-2 mt-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${neuralActivity}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="bg-black/30 rounded-xl p-3">
-                  <h4 className="text-cyan-300 text-sm mb-2">Quantum State</h4>
-                  <div className="text-sm text-white">{quantumState}</div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-green-400">Active</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-black/30 rounded-xl p-3">
-                <h4 className="text-white text-sm mb-2 flex items-center gap-2">
-                  <Terminal className="w-4 h-4" />
-                  Neural Logs
-                </h4>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {neuralLogs.map((log, index) => (
-                    <div key={index} className="text-xs text-green-400 font-mono">
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )} */}
+        <div className="h-full overflow-hidden" style={{ height: 'calc(100% - 60px)' }}>
           {app.type === "notepad" && (
             <div className="h-full">
               <Notepad />
@@ -346,7 +367,7 @@ const FuturisticAuraDesktop = () => {
           )}
 
           {app.type === "code" && (
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <button
                   onClick={runQuantumCode}
@@ -371,34 +392,6 @@ const FuturisticAuraDesktop = () => {
             </div>
           )}
 
-          {/* {app.type === 'data' && (
-            <div className="space-y-4">
-              <h4 className="text-white text-lg mb-4">Quantum Data Streams</h4>
-              <div className="space-y-3">
-                {dataMatrixData.map((item) => (
-                  <div key={item.id} className="bg-black/30 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white text-sm font-medium">{item.name}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        item.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 bg-white/10 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${item.value}%` }}
-                        />
-                      </div>
-                      <span className="text-cyan-400 text-sm font-mono">{item.value}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )} */}
           {app.type === "file" && (
             <div className="h-full">
               <FileManager />
@@ -406,7 +399,7 @@ const FuturisticAuraDesktop = () => {
           )}
 
           {app.type === "chat" && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full p-4">
               <div className="flex-1 bg-black/30 rounded-xl p-4 mb-4 overflow-y-auto">
                 <div className="space-y-3">
                   {chatMessages.map((msg) => (
@@ -453,7 +446,7 @@ const FuturisticAuraDesktop = () => {
           )}
 
           {app.type === "web" && (
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex-1 bg-black/30 border border-purple-500/30 rounded-xl px-4 py-2 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-purple-400" />
@@ -478,25 +471,28 @@ const FuturisticAuraDesktop = () => {
             </div>
           )}
 
-          {app.type === "reality" && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h4 className="text-white text-lg mb-4">Reality Engine</h4>
-                <div className="bg-black/30 rounded-xl p-8">
-                  <div className="relative w-32 h-32 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 to-green-500/30 rounded-full animate-pulse"></div>
-                    <div className="absolute inset-4 bg-black/50 rounded-full flex items-center justify-center">
-                      <Eye className="w-8 h-8 text-emerald-400" />
-                    </div>
-                  </div>
-                  <p className="text-white/60 text-sm">
-                    Augmented Reality Synthesis
-                  </p>
-                  <p className="text-emerald-400 text-xs mt-2">
-                    Reality layers: Active
-                  </p>
-                </div>
-              </div>
+          {app.type === "terminal" && (
+            <div className="h-full">
+              <TerminalApp
+                onOpenApp={(appName, data) => {
+                  // Handle launching other apps from terminal
+                  if (appName === "notepad") {
+                    const notepadApp = quantumApps.find(
+                      (a) => a.id === "notepad"
+                    );
+                    if (notepadApp) {
+                      openApp(notepadApp);
+                    }
+                  } else if (appName === "filemanager") {
+                    const fileManagerApp = quantumApps.find(
+                      (a) => a.id === "file-manager"
+                    );
+                    if (fileManagerApp) {
+                      openApp(fileManagerApp);
+                    }
+                  }
+                }}
+              />
             </div>
           )}
         </div>
