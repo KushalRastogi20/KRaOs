@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import useFileSystem from "@/hooks/useFileSystem";
+import { useSettings } from '@/app/contexts/SettingsContext';
 import { 
   FileText, 
   Save, 
@@ -46,6 +47,7 @@ import {
 } from 'lucide-react';
 
 const Notepad = () => {
+  const { settings, updateSetting } = useSettings();
   const {
     files,
     folders,
@@ -82,24 +84,35 @@ const Notepad = () => {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   
-  // File options
-  const [enableEncryption, setEnableEncryption] = useState(false);
+  // File options - now using settings context
+  const [enableEncryption, setEnableEncryption] = useState(settings.encryptByDefault);
   const [enableCompression, setEnableCompression] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState('');
   
-  // Editor states
+  // Editor states - now using settings context
   const [wordCount, setWordCount] = useState(0);
   const [lineCount, setLineCount] = useState(1);
   const [charCount, setCharCount] = useState(0);
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(
+    settings.fontSize === 'small' ? 12 : 
+    settings.fontSize === 'large' ? 18 : 14
+  );
   const [fontFamily, setFontFamily] = useState('mono');
   
   // UI states
   const [notification, setNotification] = useState(null);
-  const [autoSave, setAutoSave] = useState(true);
   const [lastSaved, setLastSaved] = useState(null);
 
-  // Get current files and folders
+  // Update settings when context changes
+  useEffect(() => {
+    setEnableEncryption(settings.encryptByDefault);
+    setFontSize(
+      settings.fontSize === 'small' ? 12 : 
+      settings.fontSize === 'large' ? 18 : 14
+    );
+  }, [settings.encryptByDefault, settings.fontSize]);
+
+  // Get current files and folders - use settings default path if available
   const currentFiles = getFilesInPath(currentPath).filter(file => {
     if (fileTypeFilter === 'all') return true;
     return file.type === fileTypeFilter;
@@ -150,15 +163,15 @@ const Notepad = () => {
     }
   }, [content, fileName, isEditing, currentFile]);
 
-  // Auto-save functionality
+  // Auto-save functionality - now using settings context
   useEffect(() => {
-    if (autoSave && hasUnsavedChanges && fileName.trim() && content.trim()) {
+    if (settings.autoSave && hasUnsavedChanges && fileName.trim() && content.trim()) {
       const saveTimer = setTimeout(() => {
         handleSave(false);
       }, 3000);
       return () => clearTimeout(saveTimer);
     }
-  }, [content, fileName, hasUnsavedChanges, autoSave]);
+  }, [content, fileName, hasUnsavedChanges, settings.autoSave]);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -180,7 +193,7 @@ const Notepad = () => {
       name: fileName.trim(),
       content: content,
       type: 'text',
-      path: currentPath,
+      path: settings.defaultFolderPath || currentPath,
       encrypt: enableEncryption,
       compress: enableCompression,
       encryptionKey: encryptionKey || undefined
@@ -193,11 +206,11 @@ const Notepad = () => {
         name: fileName.trim(),
         content: content,
         type: 'text',
-        path: currentPath
+        path: settings.defaultFolderPath || currentPath
       });
       
       if (showNotif) {
-        showNotification('File saved successfully!');
+        showNotification(`File saved successfully!${enableEncryption ? ' (encrypted)' : ''}`);
       }
     } else {
       showNotification(`Error saving file: ${result.error}`, 'error');
@@ -290,10 +303,10 @@ const Notepad = () => {
     const pathParts = currentPath.split('/').filter(Boolean);
     
     return (
-      <div className="flex items-center gap-2 text-sm text-white/70">
+      <div className="flex items-center gap-2 text-sm text-secondary">
         <button
-          onClick={() => navigateToPath('/')}
-          className="flex items-center gap-1 hover:text-white transition-colors"
+          onClick={() => navigateToPath(settings.defaultFolderPath || '/')}
+          className="flex items-center gap-1 hover:text-primary transition-colors"
         >
           <Home className="w-4 h-4" />
           Home
@@ -304,7 +317,7 @@ const Notepad = () => {
             <ChevronRight className="w-3 h-3" />
             <button
               onClick={() => navigateToPath(`/${pathParts.slice(0, index + 1).join('/')}/`)}
-              className="hover:text-white transition-colors"
+              className="hover:text-primary transition-colors"
             >
               {part}
             </button>
@@ -317,7 +330,7 @@ const Notepad = () => {
   const renderFileExplorer = () => (
     <div className="space-y-4">
       {/* Navigation Bar */}
-      <div className="flex items-center justify-between p-4 bg-black/30 border border-purple-500/30 rounded-lg">
+      <div className="flex items-center justify-between p-4 bg-secondary border border-[var(--bg-secondary)] rounded-lg">
         <div className="flex items-center gap-2">
           <button
             onClick={navigateUp}
@@ -334,7 +347,7 @@ const Notepad = () => {
             <FolderPlus className="w-4 h-4" />
           </button>
           
-          <div className="w-px h-6 bg-white/20 mx-2"></div>
+          <div className="w-px h-6 bg-[var(--bg-secondary)] mx-2"></div>
           
           {renderBreadcrumb()}
         </div>
@@ -343,7 +356,7 @@ const Notepad = () => {
           <select
             value={fileTypeFilter}
             onChange={(e) => setFileTypeFilter(e.target.value)}
-            className="px-3 py-2 bg-black/30 border border-purple-500/30 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500/50"
+            className="px-3 py-2 bg-secondary border border-[var(--bg-secondary)] rounded-lg text-primary text-sm focus:outline-none focus:border-purple-500/50"
           >
             {fileTypes.map(type => (
               <option key={type.value} value={type.value}>{type.label}</option>
@@ -355,7 +368,7 @@ const Notepad = () => {
             className={`p-2 rounded-lg border transition-all ${
               showRecent 
                 ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300' 
-                : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                : 'bg-secondary border-[var(--bg-secondary)] text-secondary hover:bg-primary'
             }`}
           >
             <Star className="w-4 h-4" />
@@ -365,15 +378,15 @@ const Notepad = () => {
 
       {/* Create Folder Modal */}
       {showCreateFolder && (
-        <div className="p-4 bg-black/40 border border-green-500/30 rounded-lg">
-          <h3 className="text-white font-medium mb-3">Create New Folder</h3>
+        <div className="p-4 bg-secondary border border-green-500/30 rounded-lg">
+          <h3 className="text-primary font-medium mb-3">Create New Folder</h3>
           <div className="flex gap-2">
             <input
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Folder name..."
-              className="flex-1 px-3 py-2 bg-black/30 border border-green-500/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-green-500/50"
+              className="flex-1 px-3 py-2 bg-secondary border border-green-500/30 rounded-lg text-primary placeholder-secondary focus:outline-none focus:border-green-500/50"
               onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
             />
             <button
@@ -397,28 +410,28 @@ const Notepad = () => {
 
       {/* Recent Files */}
       {showRecent && (
-        <div className="p-4 bg-black/30 border border-yellow-500/30 rounded-lg">
-          <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+        <div className="p-4 bg-secondary border border-yellow-500/30 rounded-lg">
+          <h3 className="text-primary font-medium mb-3 flex items-center gap-2">
             <Clock className="w-4 h-4 text-yellow-400" />
             Recent Files
           </h3>
           <div className="space-y-2">
             {recentFilesList.length === 0 ? (
-              <p className="text-white/60 text-sm">No recent files</p>
+              <p className="text-secondary text-sm">No recent files</p>
             ) : (
               recentFilesList.slice(0, 5).map((file, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 bg-black/30 rounded-lg hover:bg-black/40 cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-2 bg-secondary rounded-lg hover:bg-primary cursor-pointer transition-colors"
                   onClick={() => handleOpenFile(file)}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-yellow-500/20 rounded flex items-center justify-center">
                       <FileText className="w-3 h-3 text-yellow-400" />
                     </div>
-                    <span className="text-white text-sm">{file.name}</span>
+                    <span className="text-primary text-sm">{file.name}</span>
                   </div>
-                  <span className="text-white/60 text-xs">{formatDate(file.lastOpened)}</span>
+                  <span className="text-secondary text-xs">{formatDate(file.lastOpened)}</span>
                 </div>
               ))
             )}
@@ -432,7 +445,7 @@ const Notepad = () => {
         {currentFolders.map((folder) => (
           <div
             key={folder.id}
-            className="flex items-center justify-between p-3 bg-black/30 border border-purple-500/20 rounded-lg hover:bg-black/40 cursor-pointer transition-colors"
+            className="flex items-center justify-between p-3 bg-secondary border border-[var(--bg-secondary)] rounded-lg hover:bg-primary cursor-pointer transition-colors"
             onClick={() => navigateToPath(folder.path)}
           >
             <div className="flex items-center gap-3">
@@ -440,8 +453,8 @@ const Notepad = () => {
                 <Folder className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h3 className="text-white font-medium">{folder.name}</h3>
-                <p className="text-white/60 text-sm">{formatDate(folder.createdAt)}</p>
+                <h3 className="text-primary font-medium">{folder.name}</h3>
+                <p className="text-secondary text-sm">{formatDate(folder.createdAt)}</p>
               </div>
             </div>
             
@@ -451,7 +464,7 @@ const Notepad = () => {
                   e.stopPropagation();
                   handleDeleteFolder(folder.path);
                 }}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
+                className="p-1 hover:bg-secondary rounded transition-colors"
               >
                 <Trash2 className="w-4 h-4 text-red-400" />
               </button>
@@ -465,7 +478,7 @@ const Notepad = () => {
           return (
             <div
               key={file.id}
-              className="flex items-center justify-between p-3 bg-black/30 border border-cyan-500/20 rounded-lg hover:bg-black/40 cursor-pointer transition-colors"
+              className="flex items-center justify-between p-3 bg-secondary border border-[var(--bg-secondary)] rounded-lg hover:bg-primary cursor-pointer transition-colors"
               onClick={() => handleOpenFile(file)}
             >
               <div className="flex items-center gap-3">
@@ -474,7 +487,7 @@ const Notepad = () => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-white font-medium">{file.name}</h3>
+                    <h3 className="text-primary font-medium">{file.name}</h3>
                     {file.isEncrypted && (
                       <Shield className="w-3 h-3 text-green-400" title="Encrypted" />
                     )}
@@ -482,7 +495,7 @@ const Notepad = () => {
                       <Archive className="w-3 h-3 text-blue-400" title="Compressed" />
                     )}
                   </div>
-                  <p className="text-white/60 text-sm">
+                  <p className="text-secondary text-sm">
                     {formatFileSize(file.size)} • {formatDate(file.updatedAt)}
                   </p>
                 </div>
@@ -494,7 +507,7 @@ const Notepad = () => {
                     e.stopPropagation();
                     handleDeleteFile(file.name, file.path);
                   }}
-                  className="p-1 hover:bg-white/10 rounded transition-colors"
+                  className="p-1 hover:bg-secondary rounded transition-colors"
                 >
                   <Trash2 className="w-4 h-4 text-red-400" />
                 </button>
@@ -506,8 +519,8 @@ const Notepad = () => {
         {filteredFiles.length === 0 && currentFolders.length === 0 && (
           <div className="text-center py-16">
             <FileText className="w-16 h-16 mx-auto mb-4 text-purple-400/50" />
-            <p className="text-white/60 text-lg">No files found</p>
-            <p className="text-white/40 text-sm mt-2">Create your first file to get started</p>
+            <p className="text-secondary text-lg">No files found</p>
+            <p className="text-secondary text-sm mt-2">Create your first file to get started</p>
           </div>
         )}
       </div>
@@ -515,7 +528,7 @@ const Notepad = () => {
   );
 
   return (
-    <div className="notepad-app h-full bg-black/20 backdrop-blur-xl border border-purple-500/30 rounded-lg overflow-hidden flex flex-col">
+    <div className="notepad-app h-full bg-primary backdrop-blur-xl border border-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col">
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border backdrop-blur-sm flex items-center gap-2 ${
@@ -531,16 +544,17 @@ const Notepad = () => {
       )}
 
       {/* Header */}
-      <div className="border-b border-purple-500/30 p-4 bg-black/40 flex-shrink-0">
+      <div className="border-b border-[var(--bg-secondary)] p-4 bg-secondary flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <PenTool className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Quantum Notepad</h1>
+              <h1 className="text-xl font-bold text-primary">Quantum Notepad</h1>
               <p className="text-purple-300 text-sm">
                 {fileName || 'Untitled'} {hasUnsavedChanges && '*'}
+                {settings.autoSave && <span className="text-green-400 ml-2">[Auto-Save ON]</span>}
               </p>
             </div>
           </div>
@@ -551,7 +565,7 @@ const Notepad = () => {
               className={`px-3 py-2 rounded-lg border transition-all ${
                 viewMode === 'explorer'
                   ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-                  : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                  : 'bg-secondary border-[var(--bg-secondary)] text-secondary hover:bg-primary'
               }`}
             >
               <FolderOpen className="w-4 h-4" />
@@ -562,7 +576,7 @@ const Notepad = () => {
               className={`px-3 py-2 rounded-lg border transition-all ${
                 viewMode === 'editor'
                   ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
-                  : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                  : 'bg-secondary border-[var(--bg-secondary)] text-secondary hover:bg-primary'
               }`}
             >
               <Edit3 className="w-4 h-4" />
@@ -573,7 +587,7 @@ const Notepad = () => {
               className={`px-3 py-2 rounded-lg border transition-all ${
                 viewMode === 'split'
                   ? 'bg-green-500/20 border-green-500/40 text-green-300'
-                  : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                  : 'bg-secondary border-[var(--bg-secondary)] text-secondary hover:bg-primary'
               }`}
             >
               <Layers className="w-4 h-4" />
@@ -586,17 +600,17 @@ const Notepad = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* File Explorer Panel */}
         {(viewMode === 'explorer' || viewMode === 'split') && (
-          <div className="w-full lg:w-80 border-r border-purple-500/30 bg-black/20 overflow-auto">
+          <div className="w-full lg:w-80 border-r border-[var(--bg-secondary)] bg-secondary overflow-auto">
             <div className="p-4">
               {/* Search */}
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary w-4 h-4" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search files..."
-                  className="w-full pl-10 pr-4 py-2 bg-black/30 border border-purple-500/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-500/50 text-sm"
+                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-[var(--bg-secondary)] rounded-lg text-primary placeholder-secondary focus:outline-none focus:border-purple-500/50 text-sm"
                 />
               </div>
 
@@ -609,7 +623,7 @@ const Notepad = () => {
         {(viewMode === 'editor' || viewMode === 'split') && (
           <div className="flex-1 flex flex-col">
             {/* Editor Toolbar */}
-            <div className="p-3 border-b border-purple-500/30 bg-black/30 flex-shrink-0">
+            <div className="p-3 border-b border-[var(--bg-secondary)] bg-secondary flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <button
@@ -632,12 +646,12 @@ const Notepad = () => {
                     <Save className="w-4 h-4" />
                   </button>
                   
-                  <div className="w-px h-6 bg-white/20 mx-2"></div>
+                  <div className="w-px h-6 bg-[var(--bg-secondary)] mx-2"></div>
                   
                   <select
                     value={fontSize}
                     onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="px-2 py-1 bg-black/30 border border-purple-500/30 rounded text-white text-sm focus:outline-none focus:border-purple-500/50"
+                    className="px-2 py-1 bg-secondary border border-[var(--bg-secondary)] rounded text-primary text-sm focus:outline-none focus:border-purple-500/50"
                   >
                     <option value={12}>12px</option>
                     <option value={14}>14px</option>
@@ -648,7 +662,7 @@ const Notepad = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-xs text-white/70">
+                  <label className="flex items-center gap-2 text-xs text-secondary">
                     <input
                       type="checkbox"
                       checked={enableEncryption}
@@ -659,7 +673,7 @@ const Notepad = () => {
                     Encrypt
                   </label>
                   
-                  <label className="flex items-center gap-2 text-xs text-white/70">
+                  <label className="flex items-center gap-2 text-xs text-secondary">
                     <input
                       type="checkbox"
                       checked={enableCompression}
@@ -670,27 +684,27 @@ const Notepad = () => {
                     Compress
                   </label>
                   
-                  <label className="flex items-center gap-2 text-xs text-white/70">
+                  <label className="flex items-center gap-2 text-xs text-secondary">
                     <input
                       type="checkbox"
-                      checked={autoSave}
-                      onChange={(e) => setAutoSave(e.target.checked)}
+                      checked={settings.autoSave}
+                      onChange={(e) => updateSetting('autoSave', e.target.checked)}
                       className="w-3 h-3"
                     />
-                    Auto Save
+                    Auto Save (Global)
                   </label>
                 </div>
               </div>
             </div>
 
             {/* File Name Input */}
-            <div className="p-3 border-b border-purple-500/30 bg-black/20 flex gap-2">
+            <div className="p-3 border-b border-[var(--bg-secondary)] bg-secondary flex gap-2">
               <input
                 type="text"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
                 placeholder="Enter file name..."
-                className="flex-1 px-4 py-2 bg-black/30 border border-purple-500/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-500/50"
+                className="flex-1 px-4 py-2 bg-secondary border border-[var(--bg-secondary)] rounded-lg text-primary placeholder-secondary focus:outline-none focus:border-purple-500/50"
               />
               
               {enableEncryption && (
@@ -699,7 +713,7 @@ const Notepad = () => {
                   value={encryptionKey}
                   onChange={(e) => setEncryptionKey(e.target.value)}
                   placeholder="Encryption key..."
-                  className="w-32 px-3 py-2 bg-black/30 border border-green-500/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-green-500/50"
+                  className="w-32 px-3 py-2 bg-secondary border border-green-500/30 rounded-lg text-primary placeholder-secondary focus:outline-none focus:border-green-500/50"
                 />
               )}
             </div>
@@ -710,7 +724,7 @@ const Notepad = () => {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Start typing your quantum notes..."
-                className="w-full h-full bg-black/30 border border-purple-500/30 rounded-lg p-4 text-white placeholder-white/50 focus:outline-none focus:border-purple-500/50 resize-none"
+                className="w-full h-full bg-secondary border border-[var(--bg-secondary)] rounded-lg p-4 text-primary placeholder-secondary focus:outline-none focus:border-purple-500/50 resize-none"
                 style={{
                   fontSize: `${fontSize}px`,
                   fontFamily: fontFamily === 'mono' ? 'monospace' : fontFamily === 'serif' ? 'serif' : 'sans-serif'
@@ -719,13 +733,14 @@ const Notepad = () => {
             </div>
 
             {/* Status Bar */}
-            <div className="p-3 border-t border-purple-500/30 bg-black/30 flex-shrink-0">
-              <div className="flex items-center justify-between text-xs text-white/60">
+            <div className="p-3 border-t border-[var(--bg-secondary)] bg-secondary flex-shrink-0">
+              <div className="flex items-center justify-between text-xs text-secondary">
                 <div className="flex items-center gap-4">
                   <span>{charCount} chars</span>
                   <span>{wordCount} words</span>
                   <span>{lineCount} lines</span>
-                  <span>{currentPath}</span>
+                  <span>Path: {settings.defaultFolderPath || currentPath}</span>
+                  <span>Theme: {settings.theme}</span>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -739,6 +754,12 @@ const Notepad = () => {
                     <span className="flex items-center gap-1 text-blue-400">
                       <Archive className="w-3 h-3" />
                       Compressed
+                    </span>
+                  )}
+                  {settings.autoSave && (
+                    <span className="flex items-center gap-1 text-green-400">
+                      <Zap className="w-3 h-3" />
+                      Auto-Save ON
                     </span>
                   )}
                   {lastSaved && (

@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --bg-primary: rgba(0, 0, 0, 0.6);
+  --bg-secondary: rgba(0, 0, 0, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
 }
 
 @theme inline {
@@ -12,15 +16,54 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: all 0.3s ease;
+}
+
+/* Theme classes */
+.light-theme {
+  --background: #ffffff;
+  --foreground: #171717;
+  --bg-primary: rgba(255, 255, 255, 0.9);
+  --bg-secondary: rgba(240, 240, 240, 0.8);
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+}
+
+.dark-theme {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --bg-primary: rgba(0, 0, 0, 0.6);
+  --bg-secondary: rgba(0, 0, 0, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+}
+
+.glassy-theme {
+  --background: rgba(0, 0, 0, 0.8);
+  --foreground: #ffffff;
+  --bg-primary: rgba(255, 255, 255, 0.1);
+  --bg-secondary: rgba(255, 255, 255, 0.05);
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+}
+
+/* Utility classes */
+.bg-primary {
+  background-color: var(--bg-primary) !important;
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary) !important;
+}
+
+.text-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js'; // You'll need to install this: npm install crypto-js
-
+import CryptoJS from 'crypto-js';
 const useFileSystem = () => {
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -25,7 +24,7 @@ const useFileSystem = () => {
     }
   }, []);
 
-  // Storage event listeners (from previous implementation)
+  // Storage event listeners
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'fileSystem') {
@@ -63,7 +62,6 @@ const useFileSystem = () => {
           console.error('Error parsing custom storage event:', error);
         }
       }
-      // Add similar handlers for folders and recent files
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -214,15 +212,7 @@ const useFileSystem = () => {
   };
 
   // Enhanced saveFile with folder support, encryption, and compression
-  const saveFile = ({ 
-    name, 
-    content, 
-    type = 'text', 
-    path = '/',
-    encrypt = false,
-    compress = false,
-    encryptionKey = null
-  }) => {
+  const saveFile = ({ name, content, type = 'text', path = '/', encrypt = false, compress = false, encryptionKey = null }) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -247,7 +237,7 @@ const useFileSystem = () => {
         id: Date.now().toString(),
         name,
         content: processedContent,
-        originalContent: content, // Keep original for search purposes
+        originalContent: content,
         type,
         path,
         createdAt: new Date().toISOString(),
@@ -265,7 +255,6 @@ const useFileSystem = () => {
       
       let updatedFiles;
       if (existingFileIndex !== -1) {
-        // Update existing file
         updatedFiles = [...currentFiles];
         updatedFiles[existingFileIndex] = {
           ...updatedFiles[existingFileIndex],
@@ -279,14 +268,10 @@ const useFileSystem = () => {
           isCompressed: compress
         };
       } else {
-        // Add new file
         updatedFiles = [...currentFiles, newFile];
       }
       
-      // Update recent files
       updateRecentFiles(name);
-      
-      // Save to localStorage and trigger events
       saveToLocalStorage(updatedFiles);
       setFiles(updatedFiles);
 
@@ -507,7 +492,7 @@ const useFileSystem = () => {
   };
 
   return {
-    // State
+    
     files,
     folders,
     currentPath,
@@ -549,8 +534,74 @@ const useFileSystem = () => {
       if (savedFiles) setFiles(JSON.parse(savedFiles));
       if (savedFolders) setFolders(JSON.parse(savedFolders));
       if (savedRecent) setRecentFiles(JSON.parse(savedRecent));
+    },
+    setCurrentPath,
+    navigateToPath: (path) => setCurrentPath(path),
+    navigateUp: () => {
+      if (currentPath === '/') return;
+      const pathParts = currentPath.split('/').filter(Boolean);
+      pathParts.pop();
+      const parentPath = pathParts.length > 0 ? `/${pathParts.join('/')}/` : '/';
+      setCurrentPath(parentPath);
+    },
+    getFilesInPath: (path) => files.filter(file => file.path === path),
+    getFoldersInPath: (path) => folders.filter(folder => folder.parentPath === path),
+    getRecentFiles: () => recentFiles.map(fileName => files.find(f => f.name === fileName)).filter(Boolean),
+    searchFiles: (query) => files.filter(file => 
+      file.name.toLowerCase().includes(query.toLowerCase()) ||
+      (file.originalContent || file.content).toLowerCase().includes(query.toLowerCase())
+    ),
+    getFilesByType: (type) => files.filter(file => file.type === type),
+    getFile: (name, path = '/') => files.find(file => file.name === name && file.path === path),
+    deleteFile: (name, path = '/') => {
+      const updatedFiles = files.filter(file => !(file.name === name && file.path === path));
+      saveToLocalStorage(updatedFiles);
+      setFiles(updatedFiles);
+      return { success: true };
+    },
+    createFolder: (name, parentPath = '/') => {
+      const newFolder = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        path: `${parentPath}${name.trim()}/`,
+        parentPath,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const updatedFolders = [...folders, newFolder];
+      setFolders(updatedFolders);
+      localStorage.setItem('folderSystem', JSON.stringify(updatedFolders));
+      return { success: true, folder: newFolder };
+    },
+    deleteFolder: (folderPath) => {
+      const updatedFolders = folders.filter(folder => folder.path !== folderPath);
+      const updatedFiles = files.filter(file => !file.path.startsWith(folderPath));
+      setFolders(updatedFolders);
+      setFiles(updatedFiles);
+      localStorage.setItem('folderSystem', JSON.stringify(updatedFolders));
+      saveToLocalStorage(updatedFiles);
+      return { success: true };
+    },
+    refreshFiles: () => {
+      const savedFiles = localStorage.getItem('fileSystem');
+      const savedFolders = localStorage.getItem('folderSystem');
+      const savedRecent = localStorage.getItem('recentFiles');
+      
+      if (savedFiles) setFiles(JSON.parse(savedFiles));
+      if (savedFolders) setFolders(JSON.parse(savedFolders));
+      if (savedRecent) setRecentFiles(JSON.parse(savedRecent));
+    },
+    clearAllFiles: () => {
+      setFiles([]);
+      setFolders([]);
+      setRecentFiles([]);
+      localStorage.removeItem('fileSystem');
+      localStorage.removeItem('folderSystem');
+      localStorage.removeItem('recentFiles');
+      return { success: true };
     }
   };
 };
 
 export default useFileSystem;
+

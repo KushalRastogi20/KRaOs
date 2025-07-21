@@ -1,10 +1,10 @@
-// app/components/FuturisticAuraDesktop.js
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Brain,
   Zap,
   Atom,
+  Settings,
   Globe,
   Code,
   Database,
@@ -32,9 +32,12 @@ import {
 } from "lucide-react";
 import FileManager from "@/components/FileManager";
 import Notepad from "@/components/Notepad";
-import TerminalApp from "@/components/TerminalApp";
+import TerminalApp from "@/components/terminal/TerminalApp";
+import SettingsApp from "@/components/SettingsApp";
+import { useSettings } from '@/app/contexts/SettingsContext';
 
 const FuturisticAuraDesktop = () => {
+  const { settings } = useSettings();
   const [currentTime, setCurrentTime] = useState("");
   const [neuralActivity, setNeuralActivity] = useState(0);
   const [quantumState, setQuantumState] = useState("COHERENT");
@@ -75,11 +78,13 @@ const FuturisticAuraDesktop = () => {
 
   // Neural pulse animation
   useEffect(() => {
-    const pulseInterval = setInterval(() => {
-      setNeuralActivity((prev) => (prev + 1) % 100);
-    }, 100);
-    return () => clearInterval(pulseInterval);
-  }, []);
+    if (settings.neuralPulse) {
+      const pulseInterval = setInterval(() => {
+        setNeuralActivity((prev) => (prev + 1) % 100);
+      }, 100);
+      return () => clearInterval(pulseInterval);
+    }
+  }, [settings.neuralPulse]);
 
   // Quantum state cycling
   useEffect(() => {
@@ -110,19 +115,21 @@ const FuturisticAuraDesktop = () => {
 
   // Initialize holographic nodes
   useEffect(() => {
-    const nodes = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      size: Math.random() * 3 + 1,
-      speed: Math.random() * 0.5 + 0.1,
-      angle: Math.random() * Math.PI * 2,
-      color: ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][
-        Math.floor(Math.random() * 5)
-      ],
-    }));
-    setHologramNodes(nodes);
-  }, []);
+    if (settings.quantumParticles) {
+      const nodes = Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 3 + 1,
+        speed: Math.random() * 0.5 + 0.1,
+        angle: Math.random() * Math.PI * 2,
+        color: ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][
+          Math.floor(Math.random() * 5)
+        ],
+      }));
+      setHologramNodes(nodes);
+    }
+  }, [settings.quantumParticles]);
 
   // Mouse events for dragging
   useEffect(() => {
@@ -130,7 +137,7 @@ const FuturisticAuraDesktop = () => {
       if (dragging) {
         const newX = e.clientX - dragOffset.x;
         const newY = e.clientY - dragOffset.y;
-        
+
         setActiveWindows(windows =>
           windows.map(window =>
             window.id === dragging.id
@@ -193,13 +200,13 @@ const FuturisticAuraDesktop = () => {
       type: "file",
     },
     {
-      id: "mind-link",
-      name: "Mind\nLink",
-      icon: Zap,
-      color: "from-red-400 to-pink-500",
-      hologramColor: "#ef4444",
-      description: "Direct neural interface",
-      type: "chat",
+      id: 'settings',
+      name: 'Quantum\nSettings',
+      icon: Settings,
+      color: 'from-purple-400 to-pink-500',
+      hologramColor: '#8b5cf6',
+      description: 'System configuration',
+      type: 'settings'
     },
     {
       id: "quantum-web",
@@ -255,7 +262,7 @@ const FuturisticAuraDesktop = () => {
 
   const handleMouseDown = (e, window) => {
     if (e.target.closest('.window-controls')) return;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left,
@@ -294,34 +301,36 @@ const FuturisticAuraDesktop = () => {
     const IconComponent = app.icon;
 
     const windowStyle = window.isMaximized
-      ? { 
-          left: 0, 
-          top: 80, 
-          width: "100vw", 
-          height: "calc(100vh - 160px)",
-          transform: "none"
-        }
+      ? {
+        left: 0,
+        top: 80,
+        width: "100vw",
+        height: "calc(100vh - 160px)",
+        transform: "none"
+      }
       : {
-          left: window.x,
-          top: window.y,
-          width: window.width,
-          height: window.height,
-          transform: "none"
-        };
+        left: window.x,
+        top: window.y,
+        width: window.width,
+        height: window.height,
+        transform: "none"
+      };
 
     return (
       <div
         key={window.id}
-        className={`absolute bg-black/60 backdrop-blur-xl border border-purple-500/40 rounded-2xl overflow-hidden z-40 ${
+        className={`absolute bg-primary backdrop-blur-xl border border-[var(--bg-secondary)] rounded-2xl overflow-hidden z-40 ${
           dragging?.id === window.id ? 'cursor-grabbing' : ''
         }`}
-        style={windowStyle}
+        style={{
+          ...windowStyle,
+          opacity: settings.animations ? 1 : 0.95,
+          transition: settings.animations ? 'all 0.3s ease' : 'none'
+        }}
         onMouseDown={(e) => handleMouseDown(e, window)}
       >
         {/* Window Header */}
-        <div className={`bg-black/40 border-b border-purple-500/30 p-3 flex items-center justify-between ${
-          !window.isMaximized ? 'cursor-grab' : ''
-        }`}>
+        <div className={`bg-secondary border-b border-[var(--bg-secondary)] p-3 flex items-center justify-between ${!window.isMaximized ? 'cursor-grab' : ''}`}>
           <div className="flex items-center gap-3">
             <div
               className={`w-8 h-8 bg-gradient-to-br ${app.color} rounded-xl flex items-center justify-center`}
@@ -329,7 +338,7 @@ const FuturisticAuraDesktop = () => {
               <IconComponent className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-white text-sm font-bold">
+              <h3 className="text-primary text-sm font-bold">
                 {app.name.replace("\n", " ")}
               </h3>
               <p className="text-purple-300 text-xs">{app.description}</p>
@@ -367,7 +376,7 @@ const FuturisticAuraDesktop = () => {
           )}
 
           {app.type === "code" && (
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 h-full">
               <div className="flex items-center gap-2 mb-4">
                 <button
                   onClick={runQuantumCode}
@@ -376,18 +385,27 @@ const FuturisticAuraDesktop = () => {
                   <Play className="w-4 h-4" />
                   Run Quantum Code
                 </button>
-                <button className="px-4 py-2 bg-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors">
+                <button className="px-4 py-2 bg-secondary rounded-lg text-primary text-sm font-medium hover:bg-primary transition-colors">
                   <RotateCcw className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="bg-black/50 rounded-xl p-4">
+              <div className="bg-secondary rounded-xl p-4 flex-1">
                 <textarea
                   value={codeEditorContent}
                   onChange={(e) => setCodeEditorContent(e.target.value)}
                   className="w-full h-64 bg-transparent text-green-400 font-mono text-sm resize-none outline-none"
                   placeholder="Enter quantum code here..."
                 />
+              </div>
+
+              <div className="bg-secondary rounded-xl p-4 max-h-32 overflow-y-auto">
+                <h4 className="text-primary text-sm font-medium mb-2">Neural Output:</h4>
+                <div className="space-y-1 text-xs font-mono">
+                  {neuralLogs.slice(-5).map((log, index) => (
+                    <div key={index} className="text-green-400">{log}</div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -400,14 +418,12 @@ const FuturisticAuraDesktop = () => {
 
           {app.type === "chat" && (
             <div className="flex flex-col h-full p-4">
-              <div className="flex-1 bg-black/30 rounded-xl p-4 mb-4 overflow-y-auto">
+              <div className="flex-1 bg-secondary rounded-xl p-4 mb-4 overflow-y-auto">
                 <div className="space-y-3">
                   {chatMessages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`flex ${
-                        msg.sender === "User" ? "justify-end" : "justify-start"
-                      }`}
+                      className={`flex ${msg.sender === "User" ? "justify-end" : "justify-start"}`}
                     >
                       <div
                         className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
@@ -433,7 +449,7 @@ const FuturisticAuraDesktop = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && sendMessage()}
                   placeholder="Send neural message..."
-                  className="flex-1 bg-black/30 border border-purple-500/30 rounded-xl px-4 py-2 text-white placeholder-white/50 outline-none focus:border-purple-500/50 text-sm"
+                  className="flex-1 bg-secondary border border-[var(--bg-secondary)] rounded-xl px-4 py-2 text-primary placeholder-secondary outline-none focus:border-purple-500/50 text-sm"
                 />
                 <button
                   onClick={sendMessage}
@@ -445,27 +461,33 @@ const FuturisticAuraDesktop = () => {
             </div>
           )}
 
+          {app.type === 'settings' && (
+            <div className="h-full">
+              <SettingsApp />
+            </div>
+          )}
+
           {app.type === "web" && (
-            <div className="p-4 space-y-4">
+            <div className="flex flex-col h-full p-4">
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex-1 bg-black/30 border border-purple-500/30 rounded-xl px-4 py-2 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm">
-                    quantum://web.2050.ai
-                  </span>
+                <div className="flex-1 bg-secondary rounded-lg px-4 py-2 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-cyan-400" />
+                  <input
+                    type="text"
+                    placeholder="Enter quantum URL..."
+                    className="flex-1 bg-transparent text-primary placeholder-secondary outline-none"
+                  />
                 </div>
-                <button className="px-4 py-2 bg-purple-500/20 rounded-xl text-purple-400 hover:bg-purple-500/30 transition-colors">
-                  <Search className="w-4 h-4" />
+                <button className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-lg text-cyan-300 hover:bg-cyan-500/30 transition-all">
+                  Navigate
                 </button>
               </div>
 
-              <div className="bg-black/30 rounded-xl p-4 h-64">
-                <div className="text-center text-white/60 mt-16">
-                  <Globe className="w-16 h-16 mx-auto mb-4 text-purple-400" />
-                  <p>Quantum Web Interface</p>
-                  <p className="text-sm mt-2">
-                    Connecting to quantum internet...
-                  </p>
+              <div className="flex-1 bg-secondary rounded-xl p-4 flex items-center justify-center">
+                <div className="text-center">
+                  <Globe className="w-16 h-16 mx-auto mb-4 text-cyan-400/50" />
+                  <p className="text-secondary text-lg">Quantum Web Browser</p>
+                  <p className="text-secondary text-sm mt-2">Enter a URL to begin browsing the quantum internet</p>
                 </div>
               </div>
             </div>
@@ -501,28 +523,31 @@ const FuturisticAuraDesktop = () => {
   };
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden relative">
+    <div className="w-screen h-screen bg-[var(--background)] overflow-hidden relative"
+      style={{
+        backgroundBlur: settings.backgroundBlur ? 'blur(1px)' : 'none',
+        transition: settings.animations ? 'all 0.3s ease' : 'none'
+      }}
+    >
       {/* Quantum Field Background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-purple-900/20 to-black"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--background)] via-purple-900/20 to-[var(--background)]"></div>
 
         {/* Animated Quantum Particles */}
-        {hologramNodes.map((node) => (
+        {settings.quantumParticles && hologramNodes.map((node) => (
           <div
             key={node.id}
             className="absolute w-1 h-1 rounded-full animate-pulse"
             style={{
-              left: `${
-                (node.x + Math.sin(Date.now() * 0.001 + node.angle) * 100) %
+              left: `${(node.x + Math.sin(Date.now() * 0.001 + node.angle) * 100) %
                 window.innerWidth
-              }px`,
-              top: `${
-                (node.y + Math.cos(Date.now() * 0.001 + node.angle) * 100) %
+                }px`,
+              top: `${(node.y + Math.cos(Date.now() * 0.001 + node.angle) * 100) %
                 window.innerHeight
-              }px`,
+                }px`,
               backgroundColor: node.color,
               boxShadow: `0 0 ${node.size * 4}px ${node.color}`,
-              animation: `pulse ${2 + Math.random() * 2}s infinite`,
+              animation: settings.animations ? `pulse ${2 + Math.random() * 2}s infinite` : 'none',
             }}
           />
         ))}
@@ -567,25 +592,33 @@ const FuturisticAuraDesktop = () => {
       </div>
 
       {/* Quantum Status Bar */}
-      <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-xl border-b border-purple-500/30 p-4 z-50">
+      <div className="absolute top-0 left-0 right-0 bg-secondary backdrop-blur-xl border-b border-[var(--bg-secondary)] p-4 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full animate-spin"></div>
-                <div className="absolute inset-1 bg-black rounded-full flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full"
+                  style={{
+                    animation: settings.animations ? 'spin 3s linear infinite' : 'none'
+                  }}
+                ></div>
+                <div className="absolute inset-1 bg-[var(--background)] rounded-full flex items-center justify-center">
                   <Atom className="w-4 h-4 text-purple-400" />
                 </div>
               </div>
               <div>
-                <span className="text-white font-bold text-lg">AuraOS</span>
+                <span className="text-primary font-bold text-lg">AuraOS</span>
                 <span className="text-purple-400 text-sm ml-2">2050</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-green-400 rounded-full"
+                  style={{
+                    animation: settings.neuralPulse ? 'pulse 2s infinite' : 'none'
+                  }}
+                ></div>
                 <span className="text-green-400">
                   QUANTUM STATE: {quantumState}
                 </span>
@@ -594,15 +627,18 @@ const FuturisticAuraDesktop = () => {
                 <Activity className="w-4 h-4 text-cyan-400" />
                 <span className="text-cyan-400">NEURAL: {neuralActivity}%</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-secondary">Theme: {settings.theme.toUpperCase()}</span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="text-right text-white font-mono">
+            <div className="text-right text-primary font-mono">
               <div className="text-sm">QUANTUM TIME</div>
               <div className="text-lg">{currentTime}</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-full border border-purple-500/30 flex items-center justify-center">
+            <div className="w-12 h-12 bg-primary rounded-full border border-[var(--bg-secondary)] flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-purple-400" />
             </div>
           </div>
@@ -613,7 +649,11 @@ const FuturisticAuraDesktop = () => {
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 z-30">
         <div className="relative w-full h-full">
           {/* Central Hologram Hub */}
-          <div className="absolute inset-0 rounded-full border-2 border-purple-500/30 bg-gradient-radial from-purple-500/10 to-transparent animate-pulse">
+          <div className="absolute inset-0 rounded-full border-2 border-purple-500/30 bg-gradient-radial from-purple-500/10 to-transparent"
+            style={{
+              animation: settings.neuralPulse ? 'pulse 3s infinite' : 'none'
+            }}
+          >
             <div className="absolute inset-4 rounded-full border border-cyan-500/20 bg-gradient-radial from-cyan-500/5 to-transparent"></div>
           </div>
 
@@ -645,7 +685,7 @@ const FuturisticAuraDesktop = () => {
                     }`}
                     style={{
                       background: `radial-gradient(circle, ${app.hologramColor}40 0%, transparent 70%)`,
-                      animation: `pulse 2s infinite`,
+                      animation: settings.animations ? `pulse 2s infinite` : 'none',
                     }}
                   />
 
@@ -655,24 +695,46 @@ const FuturisticAuraDesktop = () => {
                       app.color
                     } rounded-2xl border ${
                       isActive ? "border-white/40" : "border-white/20"
-                    } backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-2xl`}
+                    } backdrop-blur-sm flex items-center justify-center shadow-2xl`}
+                    style={{
+                      transform: settings.animations ? 'scale(1)' : 'scale(1)',
+                      transition: settings.animations ? 'all 0.3s ease' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (settings.animations) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (settings.animations) {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }
+                    }}
                   >
                     <IconComponent className="w-8 h-8 text-white" />
 
                     {/* Active Indicator */}
                     {isActive && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-black animate-pulse"></div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-[var(--background)]"
+                        style={{
+                          animation: settings.animations ? 'pulse 2s infinite' : 'none'
+                        }}
+                      ></div>
                     )}
 
                     {/* Holographic Scan Lines */}
                     <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent animate-pulse"></div>
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent"
+                        style={{
+                          animation: settings.animations ? 'pulse 3s infinite' : 'none'
+                        }}
+                      ></div>
                     </div>
                   </div>
 
                   {/* App Label */}
                   <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-                    <div className="text-xs text-white/80 font-medium whitespace-pre-line">
+                    <div className="text-xs text-primary font-medium whitespace-pre-line">
                       {app.name}
                     </div>
                   </div>
@@ -688,9 +750,13 @@ const FuturisticAuraDesktop = () => {
 
       {/* Quantum Dock */}
       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-black/20 backdrop-blur-xl border border-purple-500/30 rounded-full px-6 py-3 flex items-center gap-4">
+        <div className="bg-primary backdrop-blur-xl border border-[var(--bg-secondary)] rounded-full px-6 py-3 flex items-center gap-4">
           <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full animate-ping opacity-20"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full opacity-20"
+              style={{
+                animation: settings.animations ? 'ping 2s infinite' : 'none'
+              }}
+            ></div>
             <Hexagon className="w-5 h-5 text-white" />
           </div>
 
@@ -703,9 +769,9 @@ const FuturisticAuraDesktop = () => {
                 <div
                   key={appId}
                   onClick={() => restoreWindow(appId)}
-                  className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all duration-200"
+                  className="w-8 h-8 bg-secondary border border-[var(--bg-secondary)] rounded-lg flex items-center justify-center cursor-pointer hover:bg-primary transition-all duration-200"
                 >
-                  <app.icon className="w-4 h-4 text-white/80" />
+                  <app.icon className="w-4 h-4 text-secondary" />
                 </div>
               );
             })}
@@ -714,14 +780,14 @@ const FuturisticAuraDesktop = () => {
             {[Triangle, Square, Circle].map((Icon, index) => (
               <div
                 key={index}
-                className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all duration-200"
+                className="w-8 h-8 bg-secondary border border-[var(--bg-secondary)] rounded-lg flex items-center justify-center cursor-pointer hover:bg-primary transition-all duration-200"
               >
-                <Icon className="w-4 h-4 text-white/80" />
+                <Icon className="w-4 h-4 text-secondary" />
               </div>
             ))}
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-white/60">
+          <div className="flex items-center gap-2 text-xs text-secondary">
             <Waves className="w-4 h-4" />
             <span>Quantum Field Active</span>
           </div>
@@ -731,9 +797,17 @@ const FuturisticAuraDesktop = () => {
       {/* Neural Pulse Indicator */}
       <div className="absolute bottom-6 right-6 w-16 h-16 z-50">
         <div className="relative w-full h-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-cyan-500/30 rounded-full animate-pulse"></div>
-          <div className="absolute inset-2 bg-black/50 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full animate-ping"></div>
+          <div className="absolute inset-0 bg-primary rounded-full"
+            style={{
+              animation: settings.neuralPulse ? 'pulse 2s infinite' : 'none'
+            }}
+          ></div>
+          <div className="absolute inset-2 bg-[var(--background)] rounded-full flex items-center justify-center">
+            <div className="w-4 h-4 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full"
+              style={{
+                animation: settings.animations ? 'ping 2s infinite' : 'none'
+              }}
+            ></div>
           </div>
         </div>
       </div>
